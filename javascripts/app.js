@@ -1,6 +1,7 @@
 // Rover Object Goes Here
 // ======================
-var roverSpecs = {
+var roverA = {
+  roverName : 'A',
   direction : 'N',
   position : {
     posX : 0,
@@ -9,11 +10,23 @@ var roverSpecs = {
   travelLog : []
 }
 
+var roverB = {
+  roverName : 'B',
+  direction : 'N',
+  position : {
+    posX : 0,
+    posY : 0
+  },
+  travelLog : []
+}
+
+var activeRover = roverA;
+
 var modeDebug = false;
-const obstacles = [[0,0,0,0,0,0,0,0,0,0],
+var obstacles = [[0,0,0,0,0,0,0,0,0,0],
                    [0,0,0,0,0,0,0,0,0,0],
                    [0,0,0,0,0,0,0,0,0,0],
-                   [0,0,1,0,0,0,0,0,0,0],
+                   [0,0,0,0,0,0,0,0,0,0],
                    [0,0,0,0,0,0,0,0,0,0],
                    [0,0,0,0,0,0,0,0,0,0],
                    [0,0,0,0,0,0,0,0,0,0],
@@ -59,6 +72,21 @@ function outputDebug(pMessage){
 //Switch debug ON/OFF
 function debugSw(){
   modeDebug = !modeDebug;
+}
+
+function roverSw(){
+  switch(activeRover.roverName){
+    case 'A':
+      activeRover = roverB;
+      break;
+    case 'B':
+      activeRover = roverA;
+      break;
+    default:
+      activeRover = roverA;
+      break;
+  }
+  console.log('Activated rover ' + activeRover.roverName);
 }
 
 //Turn to left
@@ -146,6 +174,25 @@ function checkObstacleInPos(columna, fila){
   return obstacles[fila][columna] === 1 ? true : false ;
 }
 
+function checkRoverInPos(posibleX, posibleY){
+  var returnCheck = false;
+  switch(activeRover.roverName){
+    case 'A':
+      if (roverB.position.posX == posibleX && roverB.position.posY == posibleY){
+        returnCheck = true
+      }
+      break;
+    case 'B':
+      if (roverA.position.posX == posibleX && roverA.position.posY == posibleY){
+        returnCheck = true
+      }
+      break;
+    default:
+      break;
+  }
+  return returnCheck;
+}
+
 //Check if movement is allowed
 function checkLimits(pRover, driveDirection){
   var checkResult = true;
@@ -159,6 +206,7 @@ function checkLimits(pRover, driveDirection){
                   message : "" };
   var checkLimits = false;
   var checkObstacle = false;
+  var checkOtherRovers = false;
   if(actualDir === 'N' && driveDirection === 'f'){
     posibleX = actualX;
     posibleY = actualY - 1;
@@ -198,13 +246,17 @@ function checkLimits(pRover, driveDirection){
   outputDebug('Posible Y:' + posibleY);
 
   inLimits = (posibleY <= maxY && posibleY >= 0) && (posibleX <= maxX && posibleX >= 0);
-  checkObstacle =   inLimits ? checkObstacleInPos(posibleX, posibleY) : false ;
-  movement.allowed = (inLimits && !checkObstacle);
+  //If new position is out of limits obstacles are not checked
+  checkObstacle = inLimits ? checkObstacleInPos(posibleX, posibleY) : false ;
+  checkOtherRovers = inLimits ? checkRoverInPos(posibleX, posibleY) : false ;
+  movement.allowed = (inLimits && !checkObstacle && !checkOtherRovers);
 
   if(!inLimits){
     movement.message = "Out of board!";
   }else if (checkObstacle) {
     movement.message = "Obstacle in the way!\nCoords:" + posibleX + ',' + posibleY;
+  }else if(checkOtherRovers){
+    movement.message = "Other rover in the way!\nCoords:" + posibleX + ',' + posibleY;
   }else{
     movement.message = "OK";
   }
@@ -263,7 +315,7 @@ function commandSequence(commandString){
     let element = commandString[index].toLowerCase();
     outputDebug(element);
     if(element in availableCommands){
-      let movement = window[availableCommands[element]](roverSpecs);
+      let movement = window[availableCommands[element]](activeRover);
       if(!movement.allowed){
         console.log(movement.message);
         break;
@@ -271,12 +323,12 @@ function commandSequence(commandString){
       outputDebug('-------');
     } 
   }
-  outputDebug(roverSpecs.travelLog);
-  printPath(roverSpecs);
+  outputDebug(activeRover.travelLog);
+  printPath(activeRover);
 }
 
 function printPath(rover){
-  console.log('Rover looking to ' + rover.direction +'\nRover path.');
+  console.log('Rover ' + rover.roverName + ' looking to ' + rover.direction +'\nRover path.');
   var prevCoord = [-1,-1];
   for(let index = 0; index < rover.travelLog.length; index++){
     let newCoord = rover.travelLog[index][1];   
