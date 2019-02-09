@@ -9,24 +9,34 @@ var roverSpecs = {
   travelLog : []
 }
 
-var modeDebug = true;
+var modeDebug = false;
+const obstacles = [[0,0,0,0,0,0,0,0,0,0],
+                   [0,0,0,0,0,0,0,0,0,0],
+                   [0,0,0,0,0,0,0,0,0,0],
+                   [0,0,1,0,0,0,0,0,0,0],
+                   [0,0,0,0,0,0,0,0,0,0],
+                   [0,0,0,0,0,0,0,0,0,0],
+                   [0,0,0,0,0,0,0,0,0,0],
+                   [0,0,0,0,0,0,0,0,0,0],
+                   [0,0,0,0,0,0,0,0,0,0],
+                   [0,0,0,0,0,0,0,0,0,0]];
 
 const changeDir = {
   N : {
-    L : "E",
-    R : "W"
-  },
-  S : {
     L : "W",
     R : "E"
   },
-  E : {
-    L : "S",
-    R : "N"
+  S : {
+    L : "E",
+    R : "W"
   },
-  W : {
+  E : {
     L : "N",
     R : "S"
+  },
+  W : {
+    L : "S",
+    R : "N"
   }
 }
 
@@ -46,10 +56,12 @@ function outputDebug(pMessage){
   }
 }
 
+//Switch debug ON/OFF
 function debugSw(){
   modeDebug = !modeDebug;
 }
 
+//Turn to left
 function turnLeft(rover){
   outputDebug("turnLeft was called!");
   outputDebug(rover);
@@ -58,8 +70,13 @@ function turnLeft(rover){
   var newDir = returnNewDir(rover , 'l' )
   outputDebug('New dir : ' + newDir);
   updateDir(rover, newDir);
+  rover.travelLog.push(['l',[rover.position.posX, rover.position.posY],rover.direction]);
+  let movement = {allowed : true,
+                  message : "" };
+  return movement;  
 }
 
+//Turn to right
 function turnRight(rover){
   outputDebug("turnRight was called!");
   outputDebug(rover);
@@ -68,42 +85,68 @@ function turnRight(rover){
   var newDir = returnNewDir(rover , 'r' )
   outputDebug('New dir : ' + newDir);
   updateDir(rover, newDir);
+  rover.travelLog.push(['r',[rover.position.posX, rover.position.posY],rover.direction]);
+  let movement = {allowed : true,
+                  message : "" };
+  return movement;
 }
 
+// Move forward
+function moveForward(rover){
+  outputDebug("moveForward was called");
+  outputDebug(rover);
+  var movement = checkLimits(rover , 'f');
+  outputDebug("Retorno chequeo:" ,movement);
+  if( movement.allowed){
+    outputDebug('Actualizo POS');
+    updatePos(rover , 'f');
+    outputDebug('New X:' + rover.position.posX);
+    outputDebug('New Y:' + rover.position.posY);
+    rover.travelLog.push(['f',[rover.position.posX, rover.position.posY],rover.direction,movement.message]);
+  }else{
+    outputDebug('Check Falso');
+  }
+  return movement;
+}
+
+// Move Barckward
+function moveBackward(rover){
+  outputDebug("moveBackward was called");
+  outputDebug(rover);
+  var movement = checkLimits(rover , 'b');
+  if( movement.allowed){
+    outputDebug('Actualizo POS');
+    updatePos(rover , 'b');
+    outputDebug('New X:' + rover.position.posX);
+    outputDebug('New Y:' + rover.position.posY);    
+    rover.travelLog.push(['b',[rover.position.posX, rover.position.posY],rover.direction,movement.message]);
+  }else{
+    outputDebug('Check Falso');
+  }
+  return movement;
+}
+
+// Update Rover direction
 function updateDir(pRover, newDir){
   pRover.direction = newDir;
 }
 
-function moveForward(rover){
-  outputDebug("moveForward was called");
-  outputDebug(rover);
-  if(checkLimits(rover , 'f') === true){
-    outputDebug('Actualizo POS');
-    updatePos(rover , 'f');
-  }else{
-    outputDebug('Check Falso');
-  }
-}
-
-function moveBackward(rover){
-  outputDebug("moveBackward was called");
-  outputDebug(rover);
-  if(checkLimits(rover , 'b') === true){
-    outputDebug('Actualizo POS');
-    updatePos(rover , 'b');
-  }else{
-    outputDebug('Check Falso');
-  }
-}
-
+//Get rover direction
 function getRoverDir(pRover){
   return pRover['direction'];
 }
 
+//Get rover position
 function getRoverPos(pRover){
   return pRover['position'];
 }
 
+//Check obstacle
+function checkObstacleInPos(columna, fila){
+  return obstacles[fila][columna] === 1 ? true : false ;
+}
+
+//Check if movement is allowed
 function checkLimits(pRover, driveDirection){
   var checkResult = true;
   var actualDir = getRoverDir(pRover);
@@ -112,28 +155,40 @@ function checkLimits(pRover, driveDirection){
   var actualY = actualPos['posY'];
   var posibleY = 0;
   var posibleX = 0;
+  let movement = {allowed : false,
+                  message : "" };
+  var checkLimits = false;
+  var checkObstacle = false;
   if(actualDir === 'N' && driveDirection === 'f'){
+    posibleX = actualX;
     posibleY = actualY - 1;
   }
   if(actualDir === 'N' && driveDirection === 'b'){
+    posibleX = actualX;
     posibleY = actualY + 1;
   }
   if(actualDir === 'S' && driveDirection === 'f'){
+    posibleX = actualX;
     posibleY = actualY + 1;
   }
   if(actualDir === 'S' && driveDirection === 'b'){
+    posibleX = actualX;
     posibleY = actualY - 1;
   }
   if(actualDir === 'E' && driveDirection === 'f'){
+    posibleY = actualY;
     posibleX = actualX + 1;
   }
   if(actualDir === 'E' && driveDirection === 'b'){
+    posibleY = actualY;
     posibleX = actualX - 1;
   }  
   if(actualDir === 'W' && driveDirection === 'f'){
+    posibleY = actualY;
     posibleX = actualX - 1;
   }
   if(actualDir === 'W' && driveDirection === 'b'){
+    posibleY = actualY;
     posibleX = actualX + 1;
   }  
   outputDebug('CHECK POS');
@@ -141,7 +196,23 @@ function checkLimits(pRover, driveDirection){
   outputDebug('Y:' + actualY);
   outputDebug('Posible X:' + posibleX);
   outputDebug('Posible Y:' + posibleY);
-  return ((posibleY <= maxY && posibleY >= 0) && (posibleX <= maxX && posibleX >= 0));
+
+  inLimits = (posibleY <= maxY && posibleY >= 0) && (posibleX <= maxX && posibleX >= 0);
+  checkObstacle =   inLimits ? checkObstacleInPos(posibleX, posibleY) : false ;
+  movement.allowed = (inLimits && !checkObstacle);
+
+  if(!inLimits){
+    movement.message = "Out of board!";
+  }else if (checkObstacle) {
+    movement.message = "Obstacle in the way!\nCoords:" + posibleX + ',' + posibleY;
+  }else{
+    movement.message = "OK";
+  }
+  outputDebug('Chequeo movement');
+  outputDebug(inLimits);
+  outputDebug(checkObstacle);
+  outputDebug(movement);
+  return (movement);
 }
 
 function updatePos(pRover, driveDirection){
@@ -176,22 +247,42 @@ function updatePos(pRover, driveDirection){
   }  
   actualPos['posX'] = actualX;
   actualPos['posY'] = actualY;
-  pRover.travelLog.push([pRover.position.posX, pRover.position.posY]);
+  
 }
 
+//Get a new direction based on movement and actual direction
 function returnNewDir(pRover , turnDir ){
   var actualDir = getRoverDir(pRover);
   var options = changeDir[actualDir];
   return options[turnDir.toUpperCase()];
 }
 
+//Process a sequence of commands 
 function commandSequence(commandString){
   for (let index = 0; index < commandString.length; index++) {
-    const element = commandString[index];
+    let element = commandString[index].toLowerCase();
     outputDebug(element);
     if(element in availableCommands){
-      window[availableCommands[element]](roverSpecs);
+      let movement = window[availableCommands[element]](roverSpecs);
+      if(!movement.allowed){
+        console.log(movement.message);
+        break;
+      }
+      outputDebug('-------');
     } 
   }
-  console.log(roverSpecs.travelLog);
+  outputDebug(roverSpecs.travelLog);
+  printPath(roverSpecs);
+}
+
+function printPath(rover){
+  console.log('Rover looking to ' + rover.direction +'\nRover path.');
+  var prevCoord = [-1,-1];
+  for(let index = 0; index < rover.travelLog.length; index++){
+    let newCoord = rover.travelLog[index][1];   
+    if( prevCoord[0] != newCoord[0] || prevCoord[1] != newCoord[1]) {
+      console.log(newCoord);
+    }    
+    prevCoord = newCoord;    
+  }
 }
